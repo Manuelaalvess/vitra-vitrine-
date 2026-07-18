@@ -4,7 +4,7 @@ Vitrine de curadoria com reserva de estoque em tempo real e checkout finalizado 
 
 ## Demo
 
-[vitra-iota.vercel.app](https://vitra-iota.vercel.app)
+[vitra-vitrine.vercel.app](https://vitra-vitrine.vercel.app)
 
 ## O problema
 

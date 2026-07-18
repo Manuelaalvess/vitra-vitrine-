@@ -84,11 +84,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Peças únicas com reserva atômica de estoque e checkout via WhatsApp.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "https://vitra-iota.vercel.app/og-image.png" },
+      { property: "og:image", content: "https://vitra-vitrine.vercel.app/og-image.png" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: "https://vitra-iota.vercel.app/og-image.png" },
+      { name: "twitter:image", content: "https://vitra-vitrine.vercel.app/og-image.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
