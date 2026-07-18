@@ -1,0 +1,158 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Vitra — design system
+ * Editorial boutique. Warm canvas + burnt terracotta accent.
+ * Serif display (Newsreader) + neutral sans (Instrument Sans).
+ * Fonts loaded via <link> in __root.tsx.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-canvas: var(--canvas);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-whatsapp: var(--whatsapp);
+
+  --font-serif: "Newsreader", ui-serif, Georgia, serif;
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* Brand */
+  --brand: oklch(0.54 0.14 42); /* #af4c2e burnt terracotta */
+  --brand-foreground: oklch(0.98 0.01 60);
+  --brand-soft: oklch(0.96 0.02 55); /* #fdf4f0 */
+  --canvas: oklch(0.972 0.006 80); /* #f7f5f2 warm cream */
+  --ink: oklch(0.18 0.01 60); /* near-black */
+  --ink-muted: oklch(0.55 0.01 60);
+  --whatsapp: oklch(0.72 0.16 152); /* #25D366 */
+
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--ink);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.94 0.01 70);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.94 0.01 70);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--brand);
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.9 0.01 70);
+  --input: oklch(0.9 0.01 70);
+  --ring: var(--brand);
+}
+
+.dark {
+  --brand: oklch(0.62 0.15 42);
+  --brand-foreground: oklch(0.98 0.01 60);
+  --brand-soft: oklch(0.24 0.05 42);
+  --canvas: oklch(0.16 0.01 60);
+  --ink: oklch(0.96 0.005 60);
+  --ink-muted: oklch(0.7 0.01 60);
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: oklch(0.2 0.01 60);
+  --card-foreground: var(--ink);
+  --popover: oklch(0.2 0.01 60);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.24 0.01 60);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.24 0.01 60);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--brand);
+  --border: oklch(1 0 0 / 0.1);
+  --input: oklch(1 0 0 / 0.15);
+  --ring: var(--brand);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--brand) 15%, transparent);
+    color: var(--brand);
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+}
+
+@utility font-serif {
+  font-family: var(--font-serif);
+}
+@utility font-sans {
+  font-family: var(--font-sans);
+}
+
+@keyframes stamp-in {
+  0% {
+    transform: scale(1.4) rotate(-16deg);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) rotate(-12deg);
+    opacity: 1;
+  }
+}
+@utility animate-stamp {
+  animation: stamp-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
