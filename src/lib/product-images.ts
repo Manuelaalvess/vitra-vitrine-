@@ -14,6 +14,8 @@ const map: Record<string, string> = {
   "caneca-granulada": caneca,
 };
 
-export function imageForSlug(slug: string, fallback?: string | null): string {
-  return map[slug] ?? fallback ?? vaso;
+// Prioriza a foto cadastrada no banco (upload real via painel admin); o mapa
+// estático é só o fallback pras peças de exemplo que nunca ganharam upload.
+export function imageForSlug(slug: string, dbImageUrl?: string | null): string {
+  return dbImageUrl ?? map[slug] ?? vaso;
 }

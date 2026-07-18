@@ -108,6 +108,8 @@ function ProductPage() {
             <h1 className="mt-3 font-serif text-4xl leading-tight md:text-5xl">{product.name}</h1>
             <p className="mt-4 text-2xl font-medium">{formatBRL(product.price_cents)}</p>
 
+            {product.size && <p className="mt-4 text-sm text-ink-muted">Tamanho: {product.size}</p>}
+
             {product.description && (
               <p className="mt-6 text-ink-muted leading-relaxed">{product.description}</p>
             )}

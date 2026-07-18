@@ -150,6 +150,7 @@ function ProductCard({ product }: { product: Product }) {
           {product.subtitle && (
             <p className="text-sm text-ink-muted truncate">{product.subtitle}</p>
           )}
+          {product.size && <p className="text-xs text-ink-muted">Tamanho: {product.size}</p>}
         </div>
         <p className="text-base font-medium text-ink whitespace-nowrap">
           {formatBRL(product.price_cents)}
