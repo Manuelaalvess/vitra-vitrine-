@@ -74,6 +74,7 @@ export function CartDrawer() {
         totalCents: total,
         code: result.code,
         customerName: customerName.trim(),
+        expiresAt: result.expires_at,
       });
       setSuccess({ waUrl, code: result.code });
       clear();
