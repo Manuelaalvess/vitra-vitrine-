@@ -17,6 +17,7 @@ export type Database = {
           is_active: boolean;
           name: string;
           price_cents: number;
+          size: string | null;
           slug: string;
           stock: number;
           subtitle: string | null;
@@ -30,6 +31,7 @@ export type Database = {
           is_active?: boolean;
           name: string;
           price_cents: number;
+          size?: string | null;
           slug: string;
           stock?: number;
           subtitle?: string | null;
@@ -43,6 +45,7 @@ export type Database = {
           is_active?: boolean;
           name?: string;
           price_cents?: number;
+          size?: string | null;
           slug?: string;
           stock?: number;
           subtitle?: string | null;
@@ -122,6 +125,44 @@ export type Database = {
           },
         ];
       };
+      reservation_status_events: {
+        Row: {
+          changed_by: string | null;
+          created_at: string;
+          from_status: Database["public"]["Enums"]["reservation_status"] | null;
+          id: string;
+          note: string | null;
+          reservation_id: string;
+          to_status: Database["public"]["Enums"]["reservation_status"];
+        };
+        Insert: {
+          changed_by?: string | null;
+          created_at?: string;
+          from_status?: Database["public"]["Enums"]["reservation_status"] | null;
+          id?: string;
+          note?: string | null;
+          reservation_id: string;
+          to_status: Database["public"]["Enums"]["reservation_status"];
+        };
+        Update: {
+          changed_by?: string | null;
+          created_at?: string;
+          from_status?: Database["public"]["Enums"]["reservation_status"] | null;
+          id?: string;
+          note?: string | null;
+          reservation_id?: string;
+          to_status?: Database["public"]["Enums"]["reservation_status"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reservation_status_events_reservation_id_fkey";
+            columns: ["reservation_id"];
+            isOneToOne: false;
+            referencedRelation: "reservations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       settings: {
         Row: {
           id: number;
@@ -172,10 +213,6 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      confirm_reservation: {
-        Args: { _reservation_id: string };
-        Returns: boolean;
-      };
       expire_stale_reservations: {
         Args: Record<PropertyKey, never>;
         Returns: number;
@@ -198,10 +235,6 @@ export type Database = {
         };
         Returns: boolean;
       };
-      release_reservation: {
-        Args: { _reservation_id: string };
-        Returns: boolean;
-      };
       reserve_cart: {
         Args: {
           _customer_name: string;
@@ -214,10 +247,19 @@ export type Database = {
           reservation_id: string;
         }[];
       };
+      update_reservation_status: {
+        Args: {
+          _new_status: Database["public"]["Enums"]["reservation_status"];
+          _note?: string | null;
+          _reservation_id: string;
+        };
+        Returns: boolean;
+      };
     };
     Enums: {
       app_role: "admin" | "user";
-      reservation_status: "pending" | "confirmed" | "cancelled" | "expired";
+      reservation_status:
+        "pending" | "awaiting_payment" | "confirmed" | "delivered" | "cancelled" | "expired";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -340,7 +382,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      reservation_status: ["pending", "confirmed", "cancelled", "expired"],
+      reservation_status: [
+        "pending",
+        "awaiting_payment",
+        "confirmed",
+        "delivered",
+        "cancelled",
+        "expired",
+      ],
     },
   },
 } as const;

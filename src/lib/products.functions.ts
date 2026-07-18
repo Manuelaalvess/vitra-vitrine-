@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
 
 // ---------- Types ----------
 export interface Product {
@@ -11,6 +12,7 @@ export interface Product {
   name: string;
   subtitle: string | null;
   description: string | null;
+  size: string | null;
   price_cents: number;
   stock: number;
   image_url: string | null;
@@ -97,7 +99,7 @@ export const listProducts = createServerFn({ method: "GET" }).handler(async () =
   await supabase.rpc("expire_stale_reservations");
   const { data, error } = await supabase
     .from("products")
-    .select("id, slug, name, subtitle, description, price_cents, stock, image_url, is_active")
+    .select("id, slug, name, subtitle, description, size, price_cents, stock, image_url, is_active")
     .eq("is_active", true)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -110,7 +112,9 @@ export const getProductBySlug = createServerFn({ method: "GET" })
     const supabase = publicClient();
     const { data: row, error } = await supabase
       .from("products")
-      .select("id, slug, name, subtitle, description, price_cents, stock, image_url, is_active")
+      .select(
+        "id, slug, name, subtitle, description, size, price_cents, stock, image_url, is_active",
+      )
       .eq("slug", data.slug)
       .eq("is_active", true)
       .maybeSingle();
@@ -245,7 +249,9 @@ export const adminListProducts = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("products")
-      .select("id, slug, name, subtitle, description, price_cents, stock, image_url, is_active")
+      .select(
+        "id, slug, name, subtitle, description, size, price_cents, stock, image_url, is_active",
+      )
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []) as Product[];
@@ -272,42 +278,138 @@ export const adminUpdateStock = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const adminReleaseReservation = createServerFn({ method: "POST" })
+const updateReservationStatusSchema = z.object({
+  reservation_id: z.string().uuid(),
+  new_status: z.enum(["awaiting_payment", "confirmed", "delivered", "cancelled"]),
+  note: z.string().trim().max(280).optional(),
+});
+export const adminUpdateReservationStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { reservation_id: string }) =>
-    z.object({ reservation_id: z.string().uuid() }).parse(d),
-  )
+  .inputValidator((d: unknown) => updateReservationStatusSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.rpc("release_reservation", {
+    // A validação de transição acontece dentro da RPC, na mesma transação
+    // que trava a linha — evita corrida entre checar o status e escrever.
+    const { error } = await context.supabase.rpc("update_reservation_status", {
       _reservation_id: data.reservation_id,
+      _new_status: data.new_status,
+      _note: data.note ?? null,
     });
     if (error) {
-      console.error("Erro ao liberar reserva:", error);
-      throw new Error("Não foi possível liberar essa reserva.");
+      const msg = error.message.toLowerCase();
+      if (msg.includes("invalid_transition"))
+        throw new Error("Essa mudança de status não é permitida a partir do estado atual.");
+      if (msg.includes("not_found")) throw new Error("Reserva não encontrada.");
+      if (msg.includes("unauthorized")) throw new Error("Acesso restrito.");
+      console.error("Erro ao atualizar status da reserva:", error);
+      throw new Error("Não foi possível atualizar essa reserva.");
     }
     return { ok: true };
   });
 
-export const adminConfirmReservation = createServerFn({ method: "POST" })
+export const adminListReservationEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { reservation_id: string }) =>
     z.object({ reservation_id: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    // A validação de status pending/prazo acontece dentro da RPC, na mesma
-    // transação que trava a linha — evita corrida entre checar e escrever.
-    const { error } = await context.supabase.rpc("confirm_reservation", {
-      _reservation_id: data.reservation_id,
-    });
-    if (error) {
-      const msg = error.message.toLowerCase();
-      if (msg.includes("reservation_expired")) throw new Error("Essa reserva já expirou.");
-      if (msg.includes("invalid_status")) throw new Error("Essa reserva não está mais pendente.");
-      if (msg.includes("not_found")) throw new Error("Reserva não encontrada.");
-      if (msg.includes("unauthorized")) throw new Error("Acesso restrito.");
-      console.error("Erro ao confirmar reserva:", error);
-      throw new Error("Não foi possível confirmar essa reserva.");
+    const { data: rows, error } = await context.supabase
+      .from("reservation_status_events")
+      .select("id, from_status, to_status, note, created_at")
+      .eq("reservation_id", data.reservation_id)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as Array<{
+      id: string;
+      from_status: string | null;
+      to_status: string;
+      note: string | null;
+      created_at: string;
+    }>;
+  });
+
+function slugify(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
+  const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  if (!isAdmin) throw new Error("Acesso restrito.");
+}
+
+const productFormSchema = z.object({
+  name: z.string().trim().min(2, "Nome muito curto").max(120),
+  size: z.string().trim().max(40).optional().nullable(),
+  price_cents: z.number().int().min(0),
+  description: z.string().trim().max(2000).optional().nullable(),
+  stock: z.number().int().min(0).max(9999).default(1),
+  image_url: z.string().url().optional().nullable(),
+});
+
+export const adminCreateProduct = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => productFormSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const baseSlug = slugify(data.name) || "peca";
+    let slug = baseSlug;
+    for (let attempt = 1; attempt < 20; attempt++) {
+      const { data: existing } = await context.supabase
+        .from("products")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (!existing) break;
+      slug = `${baseSlug}-${attempt + 1}`;
     }
+    const { error } = await context.supabase.from("products").insert({
+      name: data.name,
+      slug,
+      size: data.size || null,
+      price_cents: data.price_cents,
+      description: data.description || null,
+      stock: data.stock,
+      image_url: data.image_url || null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, slug };
+  });
+
+export const adminUpdateProduct = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => productFormSchema.extend({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("products")
+      .update({
+        name: data.name,
+        size: data.size || null,
+        price_cents: data.price_cents,
+        description: data.description || null,
+        stock: data.stock,
+        image_url: data.image_url || null,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminDeactivateProduct = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("products")
+      .update({ is_active: false })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 
