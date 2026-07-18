@@ -4,7 +4,7 @@ Vitrine de curadoria com reserva de estoque em tempo real e checkout finalizado 
 
 ## Demo
 
-`[em breve]` (cole aqui a URL de deploy quando publicar, ex.: Vercel).
+[vitra-iota.vercel.app](https://vitra-iota.vercel.app)
 
 ## O problema
 
