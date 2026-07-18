@@ -45,9 +45,17 @@ const STATUS_LABEL: Record<string, { label: string; helper: string }> = {
     helper:
       "está reservada exclusivamente para você por 24 horas, enquanto combinamos pagamento e entrega no WhatsApp.",
   },
+  awaiting_payment: {
+    label: "Aguardando pagamento",
+    helper: "está com o pagamento em andamento. Finalize pelo WhatsApp para confirmar a compra.",
+  },
   confirmed: {
     label: "Confirmada",
     helper: "já foi confirmada pela loja. Combine os detalhes finais no WhatsApp.",
+  },
+  delivered: {
+    label: "Entregue",
+    helper: "já foi entregue. Esperamos que aproveite sua nova peça!",
   },
   cancelled: {
     label: "Cancelada",
@@ -67,7 +75,7 @@ function ReservationPage() {
 
   if (!r) return null;
 
-  const isActive = r.status === "pending";
+  const isActive = r.status === "pending" || r.status === "awaiting_payment";
   const status = STATUS_LABEL[r.status] ?? { label: r.status, helper: "" };
   const whatsappUrl = buildWhatsAppUrl({
     phone: settings.whatsapp_phone,
@@ -80,6 +88,7 @@ function ReservationPage() {
     totalCents: r.total_cents,
     code: r.code,
     customerName: r.customer_name,
+    expiresAt: r.expires_at,
   });
 
   const expiresLabel = new Date(r.expires_at).toLocaleString("pt-BR", {
